@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrar Chegada</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+  <h1 class="text-2xl font-bold mb-4">Registrar Chegada</h1>
+
+  <form id="chegadaForm" class="space-y-3">
+    <select id="chegadaVeiculo" class="w-full border p-2 rounded" required></select>
+    <input type="date" id="chegadaData" class="w-full border p-2 rounded" required>
+    <input type="time" id="chegadaHora" class="w-full border p-2 rounded" required>
+    <input type="number" id="chegadaKm" placeholder="Km do veículo" class="w-full border p-2 rounded" required>
+    <select id="chegadaCombustivel" class="w-full border p-2 rounded" required>
+      <option value="">Nível de combustível</option>
+      <option>1/4</option>
+      <option>1/2</option>
+      <option>3/4</option>
+      <option>Cheio</option>
+    </select>
+    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Registrar Chegada</button>
+  </form>
+
+  <a href="index.html" class="block mt-4 text-blue-600">Voltar</a>
+
+  <script>
+    function enviarParaGoogleSheets(dados) {
+      fetch("https://script.google.com/macros/s/AKfycbzBcUoq3-GJfCcKvrM4A-MTmK1gFqeA95pHl_HeaaTKEECXHvf-l4KQs0YU2GRGZM5udg/exec", {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dados)
+      });
+    }
+
+    const registros = JSON.parse(localStorage.getItem('registros')) || [];
+    const chegadaVeiculo = document.getElementById('chegadaVeiculo');
+    const ultimaSaida = registros.find(r => !r.chegada && r.saida);
+
+    if (ultimaSaida) {
+      const opt = document.createElement('option');
+      opt.textContent = ultimaSaida.saida.veiculo;
+      chegadaVeiculo.appendChild(opt);
+      chegadaVeiculo.disabled = true;
+    }
+
+    document.getElementById('chegadaForm').addEventListener('submit', e => {
+      e.preventDefault();
+      if (!ultimaSaida) {
+        alert('Nenhuma saída pendente.');
+        return;
+      }
+      const chegada = {
+        tipo: "Chegada",
+        veiculo: chegadaVeiculo.value,
+        data: chegadaData.value,
+        hora: chegadaHora.value,
+        km: chegadaKm.value,
+        combustivel: chegadaCombustivel.value
+      };
+      ultimaSaida.chegada = chegada;
+      localStorage.setItem('registros', JSON.stringify(registros));
+      enviarParaGoogleSheets(chegada);
+      alert('Chegada registrada!');
+      e.target.reset();
+    });
+  </script>
+</body>
+</html>
