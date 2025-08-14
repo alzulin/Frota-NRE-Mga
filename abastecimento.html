@@ -14,9 +14,9 @@
     <input type="date" id="abastecimentoData" class="w-full border p-2 rounded" required>
     <input type="time" id="abastecimentoHora" class="w-full border p-2 rounded" required>
     <input type="number" id="abastecimentoLitros" placeholder="Litros abastecidos" class="w-full border p-2 rounded" required>
-    <input type="file" id="abastecimentoFoto" accept="image/*" class="w-full border p-2 rounded" required>
+    <input type="file" id="abastecimentoFoto" accept="image/*" capture="environment" class="w-full border p-2 rounded" required>
     <input type="text" id="abastecimentoTecnico" placeholder="Técnico responsável" class="w-full border p-2 rounded" required>
-    <button type="submit" class="bg-yellow-600 text-white px-4 py-2 rounded">Registrar Abastecimento</button>
+    <button type="submit" class="bg-yellow-600 text-white px-4 py-2 rounded w-full">Registrar Abastecimento</button>
   </form>
 
   <a href="index.html" class="block mt-4 text-blue-600">Voltar</a>
@@ -33,18 +33,27 @@
       abastecimentoVeiculo.appendChild(opt);
     });
 
-    document.getElementById('abastecimentoForm').addEventListener('submit', e => {
-      e.preventDefault();
-      const arquivo = abastecimentoFoto.files[0];
+    function lerArquivoComoBase64(arquivo) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(arquivo);
+      });
+    }
 
+    document.getElementById('abastecimentoForm').addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const arquivo = abastecimentoFoto.files[0];
       if (!arquivo) {
         alert("Selecione uma foto do comprovante.");
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        const base64 = event.target.result.split(',')[1];
+      try {
+        const base64 = await lerArquivoComoBase64(arquivo);
+
         const abastecimento = {
           tipo: "Abastecimento",
           veiculo: abastecimentoVeiculo.value,
@@ -57,22 +66,33 @@
           fotoNome: arquivo.name
         };
 
+        // Salva no localStorage
         let registros = JSON.parse(localStorage.getItem('registros')) || [];
         registros.push({ abastecimento });
         localStorage.setItem('registros', JSON.stringify(registros));
 
-        fetch("https://script.google.com/macros/s/AKfycbzBcUoq3-GJfCcKvrM4A-MTmK1gFqeA95pHl_HeaaTKEECXHvf-l4KQs0YU2GRGZM5udg/exec", {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(abastecimento)
-        });
+        // Envia para o Google Sheets
+        const resposta = await fetch(
+          "https://script.google.com/macros/s/AKfycbzBcUoq3-GJfCcKvrM4A-MTmK1gFqeA95pHl_HeaaTKEECXHvf-l4KQs0YU2GRGZM5udg/exec",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(abastecimento)
+          }
+        );
 
-        alert('Abastecimento registrado!');
-        e.target.reset();
-      };
-      reader.readAsDataURL(arquivo);
+        if (resposta.ok) {
+          alert('✅ Abastecimento registrado com sucesso!');
+          e.target.reset();
+        } else {
+          alert('⚠️ Erro ao enviar para a planilha. Verifique a conexão.');
+        }
+
+      } catch (error) {
+        alert('❌ Erro ao processar a foto: ' + error);
+      }
     });
   </script>
 </body>
 </html>
+
