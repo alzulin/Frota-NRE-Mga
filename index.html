@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Frota - NRE Maringá</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+  <h1 class="text-2xl font-bold text-center mb-6">Registro de Frota - NRE Maringá</h1>
+
+  <div class="grid grid-cols-1 gap-4 mb-6">
+    <a href="saida.html" class="bg-blue-600 text-white p-4 rounded text-center font-semibold">Registrar Saída</a>
+    <a href="chegada.html" class="bg-green-600 text-white p-4 rounded text-center font-semibold">Registrar Chegada</a>
+    <a href="abastecimento.html" class="bg-yellow-600 text-white p-4 rounded text-center font-semibold">Registrar Abastecimento</a>
+    <a href="registros.html" class="bg-gray-800 text-white p-4 rounded text-center font-semibold">Ver Todos os Registros</a>
+  </div>
+
+  <h2 class="text-xl font-semibold mb-3">Últimos 5 Registros</h2>
+  <div id="ultimosRegistros" class="space-y-3"></div>
+
+  <script>
+    const registros = JSON.parse(localStorage.getItem('registros')) || [];
+    const ultimos = registros.slice(-5).reverse();
+    const container = document.getElementById('ultimosRegistros');
+
+    container.innerHTML = ultimos.map(r => {
+      if (r.saida) {
+        return `
+          <div class='bg-white p-3 rounded shadow'>
+            <p><strong>Veículo:</strong> ${r.saida.veiculo}</p>
+            <p><strong>Saída:</strong> ${r.saida.data} ${r.saida.hora}, Km: ${r.saida.km}</p>
+            ${r.chegada ? `<p><strong>Chegada:</strong> ${r.chegada.data} ${r.chegada.hora}, Km: ${r.chegada.km}</p>` : '<p class="text-red-500">Chegada pendente</p>'}
+          </div>`;
+      } else if (r.abastecimento) {
+        return `
+          <div class='bg-white p-3 rounded shadow'>
+            <p><strong>Veículo:</strong> ${r.abastecimento.veiculo}</p>
+            <p><strong>Abastecimento:</strong> ${r.abastecimento.data} ${r.abastecimento.hora}, Litros: ${r.abastecimento.litros}</p>
+          </div>`;
+      }
+    }).join('');
+  </script>
+</body>
+</html>
