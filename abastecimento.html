@@ -28,6 +28,8 @@
   <a href="index.html" class="block mt-4 text-blue-600">Voltar</a>
 
   <script>
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbx6jtKZWwKI3SRoBEI5_3RCUOh0KNc-9kP4lSMqXnSvlLkV1LccMMvgm4nJF_2TjZAXww/exec"; // substitua pela nova URL do Apps Script
+
     const veiculos = [
       "CRONOS – SES4A21","CRONOS – SES4A66","CRONOS – TO3D38","DUSTER – BDR4E41",
       "PARATI – AVA5383","PARATI – AVA6129","PARATI – AVB2284","VOYAGE – BCR3J12"
@@ -59,7 +61,7 @@
         fotoNome = arquivo.name;
         preview.src = e.target.result;
         preview.classList.remove('hidden');
-        btnEnviar.disabled = false; // só libera após carregar
+        btnEnviar.disabled = false; // libera após carregar
       };
 
       reader.onerror = () => {
@@ -97,22 +99,20 @@
 
       // Envia para Google Sheets/Drive
       try {
-        const resposta = await fetch(
-          "https://script.google.com/macros/s/AKfycbzBcUoq3-GJfCcKvrM4A-MTmK1gFqeA95pHl_HeaaTKEECXHvf-l4KQs0YU2GRGZM5udg/exec",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(abastecimento)
-          }
-        );
+        const resposta = await fetch(URL_SCRIPT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(abastecimento)
+        });
 
-        if (resposta.ok) {
+        const resultado = await resposta.json();
+        if (resultado.status === "sucesso") {
           alert('✅ Abastecimento registrado com sucesso!');
           e.target.reset();
           preview.classList.add('hidden');
           fotoBase64 = "";
         } else {
-          alert('⚠️ Erro ao enviar para a planilha. Verifique sua conexão.');
+          alert('⚠️ Erro no envio: ' + (resultado.mensagem || 'Desconhecido'));
         }
       } catch (erro) {
         alert('❌ Erro na conexão: ' + erro.message);
