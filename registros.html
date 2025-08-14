@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todos os Registros</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+  <h1 class="text-2xl font-bold mb-4">Todos os Registros</h1>
+  <div id="listaRegistros" class="space-y-3"></div>
+  <a href="index.html" class="block mt-4 text-blue-600">Voltar</a>
+
+  <script>
+    const registros = JSON.parse(localStorage.getItem('registros')) || [];
+    const container = document.getElementById('listaRegistros');
+
+    container.innerHTML = registros.map(r => {
+      if (r.saida) {
+        return `
+          <div class='bg-white p-3 rounded shadow'>
+            <p><strong>Saída:</strong> ${r.saida.data} ${r.saida.hora} - ${r.saida.veiculo}</p>
+            <p>Km: ${r.saida.km} | Motorista: ${r.saida.motorista}</p>
+            ${r.chegada ? `<p><strong>Chegada:</strong> ${r.chegada.data} ${r.chegada.hora}, Km: ${r.chegada.km}, Comb.: ${r.chegada.combustivel}</p>` : '<p class="text-red-500">Chegada pendente</p>'}
+          </div>`;
+      } else if (r.abastecimento) {
+        return `
+          <div class='bg-white p-3 rounded shadow'>
+            <p><strong>Abastecimento:</strong> ${r.abastecimento.data} ${r.abastecimento.hora} - ${r.abastecimento.veiculo}</p>
+            <p>Litros: ${r.abastecimento.litros} | Técnico: ${r.abastecimento.tecnico}</p>
+            ${r.abastecimento.foto ? `<img src="${r.abastecimento.foto}" class="w-32 mt-2 rounded shadow">` : ''}
+          </div>`;
+      }
+    }).join('');
+  </script>
+</body>
+</html>
