@@ -28,8 +28,7 @@
   <a href="index.html" class="block mt-4 text-blue-600">Voltar</a>
 
   <script>
-    // 🔹 Troque pela URL publicada do seu Apps Script com CORS habilitado
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbx6jtKZWwKI3SRoBEI5_3RCUOh0KNc-9kP4lSMqXnSvlLkV1LccMMvgm4nJF_2TjZAXww/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/library/d/1skfsV1d9B0ydZ_As9NqidLFoyxARyloPY-l3FX_Tnd5dcgf_aQenOUKY/3"; // <- substitua pela nova URL do Apps Script
 
     const veiculos = [
       "CRONOS – SES4A21","CRONOS – SES4A66","CRONOS – TO3D38","DUSTER – BDR4E41",
@@ -45,17 +44,14 @@
     const fileInput = document.getElementById('abastecimentoFoto');
     const preview = document.getElementById('previewFoto');
     const btnEnviar = document.getElementById('btnEnviar');
-    let fotoBase64 = "";
-    let fotoTipo = "";
-    let fotoNome = "";
+    let fotoBase64 = "", fotoTipo = "", fotoNome = "";
 
     fileInput.addEventListener('change', () => {
       const arquivo = fileInput.files[0];
       if (!arquivo) return;
-
       btnEnviar.disabled = true;
-      const reader = new FileReader();
 
+      const reader = new FileReader();
       reader.onload = e => {
         fotoBase64 = e.target.result.split(',')[1];
         fotoTipo = arquivo.type;
@@ -64,22 +60,16 @@
         preview.classList.remove('hidden');
         btnEnviar.disabled = false;
       };
-
       reader.onerror = () => {
-        alert("Erro ao carregar a foto. Tente novamente.");
+        alert("Erro ao carregar a foto.");
         btnEnviar.disabled = false;
       };
-
       reader.readAsDataURL(arquivo);
     });
 
     document.getElementById('abastecimentoForm').addEventListener('submit', async e => {
       e.preventDefault();
-
-      if (!fotoBase64) {
-        alert("Aguarde o carregamento da foto antes de enviar.");
-        return;
-      }
+      if (!fotoBase64) return alert("Aguarde carregar a foto.");
 
       const abastecimento = {
         tipo: "Abastecimento",
@@ -88,40 +78,32 @@
         hora: document.getElementById('abastecimentoHora').value,
         litros: document.getElementById('abastecimentoLitros').value,
         tecnico: document.getElementById('abastecimentoTecnico').value,
-        fotoBase64,
-        fotoTipo,
-        fotoNome
+        fotoBase64, fotoTipo, fotoNome
       };
 
-      // Salva no localStorage
-      let registros = JSON.parse(localStorage.getItem('registros')) || [];
-      registros.push({ abastecimento });
-      localStorage.setItem('registros', JSON.stringify(registros));
-
-      // Envia para Google Sheets/Drive com CORS liberado
       try {
-        const resposta = await fetch(URL_SCRIPT, {
+        const resp = await fetch(URL_SCRIPT, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(abastecimento)
         });
-
-        const resultado = await resposta.json();
-        if (resultado.status === "sucesso") {
-          alert('✅ Abastecimento registrado com sucesso!');
+        const dados = await resp.json();
+        if (dados.status === "sucesso") {
+          alert("✅ Abastecimento registrado!");
           e.target.reset();
           preview.classList.add('hidden');
           fotoBase64 = "";
         } else {
-          alert('⚠️ Erro no envio: ' + (resultado.mensagem || 'Desconhecido'));
+          alert("⚠️ Erro: " + (dados.mensagem || "Desconhecido"));
         }
-      } catch (erro) {
-        alert('❌ Erro na conexão: ' + erro.message);
+      } catch (err) {
+        alert("❌ Erro na conexão: " + err.message);
       }
     });
   </script>
 </body>
 </html>
+
 
 
 
