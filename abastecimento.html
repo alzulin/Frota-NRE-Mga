@@ -14,9 +14,15 @@
     <input type="date" id="abastecimentoData" class="w-full border p-2 rounded" required>
     <input type="time" id="abastecimentoHora" class="w-full border p-2 rounded" required>
     <input type="number" id="abastecimentoLitros" placeholder="Litros abastecidos" class="w-full border p-2 rounded" required>
+
     <input type="file" id="abastecimentoFoto" accept="image/*" capture="environment" class="w-full border p-2 rounded" required>
+    <img id="previewFoto" class="hidden w-40 h-auto rounded shadow" alt="Prévia da foto">
+
     <input type="text" id="abastecimentoTecnico" placeholder="Técnico responsável" class="w-full border p-2 rounded" required>
-    <button type="submit" class="bg-yellow-600 text-white px-4 py-2 rounded w-full">Registrar Abastecimento</button>
+
+    <button type="submit" id="btnEnviar" class="bg-yellow-600 text-white px-4 py-2 rounded w-full disabled:opacity-50" disabled>
+      Registrar Abastecimento
+    </button>
   </form>
 
   <a href="index.html" class="block mt-4 text-blue-600">Voltar</a>
@@ -33,45 +39,64 @@
       abastecimentoVeiculo.appendChild(opt);
     });
 
-    function lerArquivoComoBase64(arquivo) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = error => reject(error);
-        reader.readAsDataURL(arquivo);
-      });
-    }
+    const fileInput = document.getElementById('abastecimentoFoto');
+    const preview = document.getElementById('previewFoto');
+    const btnEnviar = document.getElementById('btnEnviar');
+    let fotoBase64 = "";
+    let fotoTipo = "";
+    let fotoNome = "";
+
+    fileInput.addEventListener('change', () => {
+      const arquivo = fileInput.files[0];
+      if (!arquivo) return;
+
+      btnEnviar.disabled = true; // desativa enquanto processa
+      const reader = new FileReader();
+
+      reader.onload = e => {
+        fotoBase64 = e.target.result.split(',')[1];
+        fotoTipo = arquivo.type;
+        fotoNome = arquivo.name;
+        preview.src = e.target.result;
+        preview.classList.remove('hidden');
+        btnEnviar.disabled = false; // só libera após carregar
+      };
+
+      reader.onerror = () => {
+        alert("Erro ao carregar a foto. Tente novamente.");
+        btnEnviar.disabled = false;
+      };
+
+      reader.readAsDataURL(arquivo);
+    });
 
     document.getElementById('abastecimentoForm').addEventListener('submit', async e => {
       e.preventDefault();
 
-      const arquivo = abastecimentoFoto.files[0];
-      if (!arquivo) {
-        alert("Selecione uma foto do comprovante.");
+      if (!fotoBase64) {
+        alert("Aguarde o carregamento da foto antes de enviar.");
         return;
       }
 
+      const abastecimento = {
+        tipo: "Abastecimento",
+        veiculo: abastecimentoVeiculo.value,
+        data: document.getElementById('abastecimentoData').value,
+        hora: document.getElementById('abastecimentoHora').value,
+        litros: document.getElementById('abastecimentoLitros').value,
+        tecnico: document.getElementById('abastecimentoTecnico').value,
+        fotoBase64,
+        fotoTipo,
+        fotoNome
+      };
+
+      // Salva no localStorage
+      let registros = JSON.parse(localStorage.getItem('registros')) || [];
+      registros.push({ abastecimento });
+      localStorage.setItem('registros', JSON.stringify(registros));
+
+      // Envia para Google Sheets/Drive
       try {
-        const base64 = await lerArquivoComoBase64(arquivo);
-
-        const abastecimento = {
-          tipo: "Abastecimento",
-          veiculo: abastecimentoVeiculo.value,
-          data: abastecimentoData.value,
-          hora: abastecimentoHora.value,
-          litros: abastecimentoLitros.value,
-          tecnico: abastecimentoTecnico.value,
-          fotoBase64: base64,
-          fotoTipo: arquivo.type,
-          fotoNome: arquivo.name
-        };
-
-        // Salva no localStorage
-        let registros = JSON.parse(localStorage.getItem('registros')) || [];
-        registros.push({ abastecimento });
-        localStorage.setItem('registros', JSON.stringify(registros));
-
-        // Envia para o Google Sheets
         const resposta = await fetch(
           "https://script.google.com/macros/s/AKfycbzBcUoq3-GJfCcKvrM4A-MTmK1gFqeA95pHl_HeaaTKEECXHvf-l4KQs0YU2GRGZM5udg/exec",
           {
@@ -84,15 +109,17 @@
         if (resposta.ok) {
           alert('✅ Abastecimento registrado com sucesso!');
           e.target.reset();
+          preview.classList.add('hidden');
+          fotoBase64 = "";
         } else {
-          alert('⚠️ Erro ao enviar para a planilha. Verifique a conexão.');
+          alert('⚠️ Erro ao enviar para a planilha. Verifique sua conexão.');
         }
-
-      } catch (error) {
-        alert('❌ Erro ao processar a foto: ' + error);
+      } catch (erro) {
+        alert('❌ Erro na conexão: ' + erro.message);
       }
     });
   </script>
 </body>
 </html>
+
 
