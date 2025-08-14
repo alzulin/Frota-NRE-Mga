@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrar Abastecimento</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+  <h1 class="text-2xl font-bold mb-4">Registrar Abastecimento</h1>
+
+  <form id="abastecimentoForm" class="space-y-3">
+    <select id="abastecimentoVeiculo" class="w-full border p-2 rounded" required></select>
+    <input type="date" id="abastecimentoData" class="w-full border p-2 rounded" required>
+    <input type="time" id="abastecimentoHora" class="w-full border p-2 rounded" required>
+    <input type="number" id="abastecimentoLitros" placeholder="Litros abastecidos" class="w-full border p-2 rounded" required>
+    <input type="file" id="abastecimentoFoto" accept="image/*" class="w-full border p-2 rounded" required>
+    <input type="text" id="abastecimentoTecnico" placeholder="Técnico responsável" class="w-full border p-2 rounded" required>
+    <button type="submit" class="bg-yellow-600 text-white px-4 py-2 rounded">Registrar Abastecimento</button>
+  </form>
+
+  <a href="index.html" class="block mt-4 text-blue-600">Voltar</a>
+
+  <script>
+    const veiculos = [
+      "CRONOS – SES4A21","CRONOS – SES4A66","CRONOS – TO3D38","DUSTER – BDR4E41",
+      "PARATI – AVA5383","PARATI – AVA6129","PARATI – AVB2284","VOYAGE – BCR3J12"
+    ];
+    const abastecimentoVeiculo = document.getElementById('abastecimentoVeiculo');
+    veiculos.forEach(v => {
+      const opt = document.createElement('option');
+      opt.textContent = v;
+      abastecimentoVeiculo.appendChild(opt);
+    });
+
+    document.getElementById('abastecimentoForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const arquivo = abastecimentoFoto.files[0];
+
+      if (!arquivo) {
+        alert("Selecione uma foto do comprovante.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const base64 = event.target.result.split(',')[1];
+        const abastecimento = {
+          tipo: "Abastecimento",
+          veiculo: abastecimentoVeiculo.value,
+          data: abastecimentoData.value,
+          hora: abastecimentoHora.value,
+          litros: abastecimentoLitros.value,
+          tecnico: abastecimentoTecnico.value,
+          fotoBase64: base64,
+          fotoTipo: arquivo.type,
+          fotoNome: arquivo.name
+        };
+
+        let registros = JSON.parse(localStorage.getItem('registros')) || [];
+        registros.push({ abastecimento });
+        localStorage.setItem('registros', JSON.stringify(registros));
+
+        fetch("https://script.google.com/macros/s/AKfycbzBcUoq3-GJfCcKvrM4A-MTmK1gFqeA95pHl_HeaaTKEECXHvf-l4KQs0YU2GRGZM5udg/exec", {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(abastecimento)
+        });
+
+        alert('Abastecimento registrado!');
+        e.target.reset();
+      };
+      reader.readAsDataURL(arquivo);
+    });
+  </script>
+</body>
+</html>
