@@ -28,7 +28,8 @@
   <a href="index.html" class="block mt-4 text-blue-600">Voltar</a>
 
   <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbx6jtKZWwKI3SRoBEI5_3RCUOh0KNc-9kP4lSMqXnSvlLkV1LccMMvgm4nJF_2TjZAXww/exec"; // substitua pela nova URL do Apps Script
+    // 🔹 Troque pela URL publicada do seu Apps Script com CORS habilitado
+    const URL_SCRIPT = "SUA_URL_DO_WEBAPP_AQUI";
 
     const veiculos = [
       "CRONOS – SES4A21","CRONOS – SES4A66","CRONOS – TO3D38","DUSTER – BDR4E41",
@@ -52,7 +53,7 @@
       const arquivo = fileInput.files[0];
       if (!arquivo) return;
 
-      btnEnviar.disabled = true; // desativa enquanto processa
+      btnEnviar.disabled = true;
       const reader = new FileReader();
 
       reader.onload = e => {
@@ -61,7 +62,7 @@
         fotoNome = arquivo.name;
         preview.src = e.target.result;
         preview.classList.remove('hidden');
-        btnEnviar.disabled = false; // libera após carregar
+        btnEnviar.disabled = false;
       };
 
       reader.onerror = () => {
@@ -97,7 +98,7 @@
       registros.push({ abastecimento });
       localStorage.setItem('registros', JSON.stringify(registros));
 
-      // Envia para Google Sheets/Drive
+      // Envia para Google Sheets/Drive com CORS liberado
       try {
         const resposta = await fetch(URL_SCRIPT, {
           method: "POST",
@@ -121,5 +122,6 @@
   </script>
 </body>
 </html>
+
 
 
