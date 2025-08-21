@@ -32,10 +32,9 @@
   </div>
 
   <script>
-    // 🔗 Cole aqui a URL /exec do seu Web App
+    // 🔗 URL /exec do seu Web App
     const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbylm9XPBh_AGIl9Q5E73P54MSCFsUFlmeDfx6Jw1Ymmr54bFTv3K6vq23-ZDAj0eBH0hw/exec";
 
-    // Mesma lista para o filtro
     const VEICULOS = [
       "CRONOS – SES4A21","CRONOS – SES4A66","CRONOS – TO3D38","DUSTER – BDR4E41",
       "PARATI – AVA5383","PARATI – AVA6129","PARATI – AVB2284","VOYAGE – BCR3J12"
@@ -53,6 +52,52 @@
       filtroVeiculo.appendChild(opt);
     });
 
+    // -------------------------
+    // Helpers de formatação
+    // -------------------------
+    function fmtDate(val) {
+      if (val === null || val === undefined || val === "") return "-";
+      // número (serial do Sheets)?
+      if (typeof val === "number") {
+        const ms = Math.round((val - 25569) * 86400 * 1000); // Excel→JS
+        const d  = new Date(ms);
+        return d.toDateString().slice(4); // "Aug 21 2025"
+      }
+      // ISO "YYYY-MM-DD"
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        const d = new Date(val + "T00:00:00");
+        return d.toDateString().slice(4);
+      }
+      // Date parseável
+      const d = new Date(val);
+      if (!isNaN(d)) return d.toDateString().slice(4);
+      // fallback: tenta extrair "Mon DD YYYY"
+      const m = String(val).match(/[A-Z][a-z]{2}\s+\d{1,2}\s+\d{4}/);
+      return m ? m[0] : String(val);
+    }
+
+    function fmtTime(val) {
+      if (val === null || val === undefined || val === "") return "-";
+      // número (fração do dia)
+      if (typeof val === "number") {
+        const totalMin = Math.round(val * 24 * 60);
+        const h = String(Math.floor(totalMin / 60) % 24).padStart(2, "0");
+        const m = String(totalMin % 60).padStart(2, "0");
+        return `${h}:${m}`;
+      }
+      // "HH:MM" já válido
+      const mm = String(val).match(/(\d{1,2}):(\d{2})/);
+      if (mm) return `${mm[1].padStart(2,"0")}:${mm[2]}`;
+      // Date parseável
+      const d = new Date(val);
+      if (!isNaN(d)) {
+        const h = String(d.getHours()).padStart(2,"0");
+        const m = String(d.getMinutes()).padStart(2,"0");
+        return `${h}:${m}`;
+      }
+      return String(val);
+    }
+
     function badgeDisponibilidade(emUso) {
       const cor = emUso ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700";
       const txt = emUso ? "Em uso" : "Disponível";
@@ -66,13 +111,10 @@
     function cardVeiculo(v) {
       const uc  = v.ultimaChegada;
       const us  = v.ultimaSaida;
-      const uba = v.ultimoAbastecimento;
 
+      const chegada = uc ? `${fmtDate(uc.data)} ${fmtTime(uc.hora)}` : "-";
+      const saida   = us ? `${fmtDate(us.data)} ${fmtTime(us.hora)}` : "-";
       const combustivel = uc && uc.combustivel ? uc.combustivel : "-";
-      const chegada     = uc ? `${uc.data} ${uc.hora}` : "-";
-      const saida       = us ? `${us.data} ${us.hora}` : "-";
-      const abastec     = uba ? `${uba.data} ${uba.hora} • ${uba.litros} L` : "-";
-      const fotoLink    = uba && uba.foto ? `<a class="text-blue-600 hover:underline text-sm" href="${uba.foto}" target="_blank" rel="noopener">Abrir comprovante</a>` : "";
 
       return `
         <div class="bg-white rounded-lg shadow p-4 flex flex-col gap-2">
@@ -84,9 +126,7 @@
             ${linha("Última Chegada", chegada)}
             ${linha("Combustível (na chegada)", combustivel)}
             ${linha("Última Saída", saida)}
-            ${linha("Último Abastecimento", abastec)}
           </div>
-          ${fotoLink}
         </div>
       `;
     }
@@ -101,19 +141,14 @@
         const url  = veic ? `${URL_SCRIPT}?action=status&veiculo=${encodeURIComponent(veic)}`
                           : `${URL_SCRIPT}?action=status`;
 
-        const resp = await fetch(url); // GET simples (sem headers customizados)
+        const resp = await fetch(url);
         if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
         const dados = await resp.json();
 
         infoAtualizado.textContent = `Atualizado em ${new Date(dados.updatedAt).toLocaleString()}`;
 
         const lista = dados.vehicles || [];
-        if (!lista.length) {
-          cards.innerHTML = `<p class="text-gray-600">Nenhum veículo encontrado.</p>`;
-          return;
-        }
-
-        cards.innerHTML = lista.map(cardVeiculo).join("");
+        cards.innerHTML = lista.map(cardVeiculo).join("") || `<p class="text-gray-600">Nenhum veículo encontrado.</p>`;
       } catch (err) {
         console.error(err);
         alert("Erro ao carregar status: " + err.message);
@@ -125,8 +160,6 @@
 
     btnAtualizar.addEventListener('click', carregar);
     filtroVeiculo.addEventListener('change', carregar);
-
-    // Primeira carga
     carregar();
   </script>
 </body>
