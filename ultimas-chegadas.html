@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Últimas Chegadas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+  <h1 class="text-2xl font-bold mb-4">Última Chegada de Cada Veículo</h1>
+
+  <table class="w-full border bg-white shadow rounded">
+    <thead>
+      <tr class="bg-gray-200">
+        <th class="p-2 border">Veículo</th>
+        <th class="p-2 border">Data</th>
+        <th class="p-2 border">Hora</th>
+        <th class="p-2 border">Combustível</th>
+        <th class="p-2 border">Técnico</th>
+      </tr>
+    </thead>
+    <tbody id="tabelaChegadas"></tbody>
+  </table>
+
+  <a href="index.html" class="block mt-4 text-blue-600">Voltar</a>
+
+  <script>
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbylm9XPBh_AGIl9Q5E73P54MSCFsUFlmeDfx6Jw1Ymmr54bFTv3K6vq23-ZDAj0eBH0hw/exec";
+
+    async function carregarUltimasChegadas() {
+      try {
+        const resp = await fetch(URL_SCRIPT + "?tipo=ultimasChegadas");
+        const dados = await resp.json();
+
+        const tbody = document.getElementById("tabelaChegadas");
+        tbody.innerHTML = "";
+
+        dados.forEach(reg => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="p-2 border">${reg.veiculo}</td>
+            <td class="p-2 border">${reg.data}</td>
+            <td class="p-2 border">${reg.hora}</td>
+            <td class="p-2 border">${reg.combustivel || "-"}</td>
+            <td class="p-2 border">${reg.tecnico}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        alert("Erro ao carregar últimas chegadas.");
+        console.error(e);
+      }
+    }
+
+    carregarUltimasChegadas();
+  </script>
+</body>
+</html>
