@@ -99,10 +99,11 @@
     }
 
     function badgeDisponibilidade(emUso) {
-      const cor = emUso ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700";
-      const txt = emUso ? "Em uso" : "Disponível";
-      return `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cor}">${txt}</span>`;
-    }
+  const cor = emUso ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700";
+  const txt = emUso ? "Não disponível" : "Disponível";
+  return `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cor}">${txt}</span>`;
+}
+
 
     function linha(label, valor) {
       return `<div class="flex justify-between text-sm"><span class="text-gray-600">${label}</span><span class="font-medium">${valor || "-"}</span></div>`;
