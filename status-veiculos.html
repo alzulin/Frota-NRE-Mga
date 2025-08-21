@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Status dos Veículos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+  <div class="max-w-5xl mx-auto space-y-4">
+    <header class="flex items-center justify-between">
+      <h1 class="text-2xl font-bold">Status dos Veículos</h1>
+      <a href="index.html" class="text-blue-600 hover:underline">Voltar</a>
+    </header>
+
+    <section class="bg-white rounded-lg shadow p-4">
+      <div class="grid gap-3 md:grid-cols-3">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Filtrar veículo</label>
+          <select id="filtroVeiculo" class="w-full border p-2 rounded">
+            <option value="">Todos os veículos</option>
+          </select>
+        </div>
+        <div class="flex items-end gap-3">
+          <button id="btnAtualizar" class="bg-yellow-600 text-white px-4 py-2 rounded">Atualizar</button>
+          <span id="infoAtualizado" class="text-sm text-gray-500"></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="cards" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></section>
+  </div>
+
+  <script>
+    // 🔗 Cole aqui a URL /exec do seu Web App
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyJAaBYQ4T5OHcnOkYAUyWJsZ7Y8UlKvDXWsr2y4NTYT0SfPSUm4pvHTRC5Pb1ZZc2lCQ/exec";
+
+    // Mesma lista para o filtro
+    const VEICULOS = [
+      "CRONOS – SES4A21","CRONOS – SES4A66","CRONOS – TO3D38","DUSTER – BDR4E41",
+      "PARATI – AVA5383","PARATI – AVA6129","PARATI – AVB2284","VOYAGE – BCR3J12"
+    ];
+
+    const filtroVeiculo = document.getElementById('filtroVeiculo');
+    const btnAtualizar  = document.getElementById('btnAtualizar');
+    const infoAtualizado= document.getElementById('infoAtualizado');
+    const cards         = document.getElementById('cards');
+
+    // Preenche o filtro
+    VEICULOS.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      filtroVeiculo.appendChild(opt);
+    });
+
+    function badgeDisponibilidade(emUso) {
+      const cor = emUso ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700";
+      const txt = emUso ? "Em uso" : "Disponível";
+      return `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cor}">${txt}</span>`;
+    }
+
+    function linha(label, valor) {
+      return `<div class="flex justify-between text-sm"><span class="text-gray-600">${label}</span><span class="font-medium">${valor || "-"}</span></div>`;
+    }
+
+    function cardVeiculo(v) {
+      const uc  = v.ultimaChegada;
+      const us  = v.ultimaSaida;
+      const uba = v.ultimoAbastecimento;
+
+      const combustivel = uc && uc.combustivel ? uc.combustivel : "-";
+      const chegada     = uc ? `${uc.data} ${uc.hora}` : "-";
+      const saida       = us ? `${us.data} ${us.hora}` : "-";
+      const abastec     = uba ? `${uba.data} ${uba.hora} • ${uba.litros} L` : "-";
+      const fotoLink    = uba && uba.foto ? `<a class="text-blue-600 hover:underline text-sm" href="${uba.foto}" target="_blank" rel="noopener">Abrir comprovante</a>` : "";
+
+      return `
+        <div class="bg-white rounded-lg shadow p-4 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">${v.veiculo}</h3>
+            ${badgeDisponibilidade(v.emUso)}
+          </div>
+          <div class="space-y-1">
+            ${linha("Última Chegada", chegada)}
+            ${linha("Combustível (na chegada)", combustivel)}
+            ${linha("Última Saída", saida)}
+            ${linha("Último Abastecimento", abastec)}
+          </div>
+          ${fotoLink}
+        </div>
+      `;
+    }
+
+    async function carregar() {
+      try {
+        btnAtualizar.disabled = true;
+        btnAtualizar.textContent = "Atualizando...";
+        cards.innerHTML = "";
+
+        const veic = filtroVeiculo.value;
+        const url  = veic ? `${URL_SCRIPT}?action=status&veiculo=${encodeURIComponent(veic)}`
+                          : `${URL_SCRIPT}?action=status`;
+
+        const resp = await fetch(url); // GET simples (sem headers customizados)
+        if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+        const dados = await resp.json();
+
+        infoAtualizado.textContent = `Atualizado em ${new Date(dados.updatedAt).toLocaleString()}`;
+
+        const lista = dados.vehicles || [];
+        if (!lista.length) {
+          cards.innerHTML = `<p class="text-gray-600">Nenhum veículo encontrado.</p>`;
+          return;
+        }
+
+        cards.innerHTML = lista.map(cardVeiculo).join("");
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao carregar status: " + err.message);
+      } finally {
+        btnAtualizar.disabled = false;
+        btnAtualizar.textContent = "Atualizar";
+      }
+    }
+
+    btnAtualizar.addEventListener('click', carregar);
+    filtroVeiculo.addEventListener('change', carregar);
+
+    // Primeira carga
+    carregar();
+  </script>
+</body>
+</html>
