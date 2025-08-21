@@ -2,41 +2,63 @@
 const SPREADSHEET_ID = "1JsaoPaNFF-gNl7n5Ywfu2XvAvhNEWn9QjAdDrDkPmW8";
 const FOLDER_ID = "1YXHYMVcNlT6gPy8XsitwSx0RcXW4r4VU";
 
-// Função principal que recebe os dados do formulário via POST
 function doPost(e) {
   try {
-    const dados = JSON.parse(e.postData.contents);
+    // --- 1) Normaliza dados vindos como FormData OU JSON ---
+    let dados = {};
+    if (e && e.parameter && Object.keys(e.parameter).length) {
+      // multipart/form-data (FormData no front)
+      dados.tipo       = e.parameter.tipo || "";
+      dados.veiculo    = e.parameter.veiculo || "";
+      dados.data       = e.parameter.data || "";
+      dados.hora       = e.parameter.hora || "";
+      dados.litros     = e.parameter.litros || "";
+      dados.tecnico    = e.parameter.tecnico || "";
+      // Campos não enviados nesta tela ficam vazios:
+      dados.km = dados.motorista = dados.passageiros = dados.cidades =
+      dados.locais = dados.motivo = dados.combustivel = "";
+    } else if (e && e.postData && e.postData.contents) {
+      // application/json OU text/plain com JSON (fallback)
+      dados = JSON.parse(e.postData.contents);
+    } else {
+      throw new Error("Payload vazio ou inválido.");
+    }
 
-    // Abre a planilha pelo ID
-    const planilha = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let aba = planilha.getSheetByName("Registros");
-
-    // Cria a aba caso não exista
+    // --- 2) Abre planilha/aba (cria se não existir) ---
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let aba = ss.getSheetByName("Registros");
     if (!aba) {
-      aba = planilha.insertSheet("Registros");
+      aba = ss.insertSheet("Registros");
       aba.appendRow([
-        "Tipo", "Veículo", "Data", "Hora", "KM", "Motorista", "Passageiros",
-        "Cidades", "Locais", "Motivo", "Combustível", "Litros", "Técnico", "Foto"
+        "Tipo","Veículo","Data","Hora","KM","Motorista","Passageiros",
+        "Cidades","Locais","Motivo","Combustível","Litros","Técnico","Foto"
       ]);
     }
 
-    // Salvar foto do comprovante no Drive
+    // --- 3) Foto: tenta arquivo do FormData; se não houver, tenta base64 ---
     let fotoLink = "";
-    if (dados.fotoBase64) {
-      const pasta = DriveApp.getFolderById(FOLDER_ID);
+    const folder = DriveApp.getFolderById(FOLDER_ID);
+
+    if (e && e.files && e.files.foto) {
+      // 'foto' é o nome do campo no FormData
+      const blob = e.files.foto; // Blob já pronto
+      const arquivo = folder.createFile(blob);
+      arquivo.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      fotoLink = arquivo.getUrl();
+    } else if (dados.fotoBase64) {
+      // Fallback: caso ainda opte por mandar base64 algum dia
       const conteudo = Utilities.base64Decode(dados.fotoBase64);
       const blob = Utilities.newBlob(
         conteudo,
         dados.fotoTipo || "image/jpeg",
-        dados.fotoNome || ("comprovante_" + Date.now() + ".jpg")
+        dados.fotoNome || "comprovante.jpg"
       );
-
-      const arquivo = pasta.createFile(blob);
+      const arquivo = folder.createFile(blob);
       arquivo.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       fotoLink = arquivo.getUrl();
     }
 
-    // Monta a linha para registrar
+    // --- 4) Monta e grava linha ---
     const linha = [
       dados.tipo || "", dados.veiculo || "", dados.data || "", dados.hora || "",
       dados.km || "", dados.motorista || "", dados.passageiros || "", dados.cidades || "",
@@ -45,26 +67,21 @@ function doPost(e) {
     ];
     aba.appendRow(linha);
 
+    // --- 5) Resposta JSON ---
     return ContentService
       .createTextOutput(JSON.stringify({ status: "sucesso", foto: fotoLink }))
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (erro) {
     return ContentService
-      .createTextOutput(JSON.stringify({ status: "erro", mensagem: erro.toString() }))
+      .createTextOutput(JSON.stringify({ status: "erro", mensagem: String(erro) }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-// Responde ao preflight (CORS) → ESSENCIAL para o fetch funcionar
-function doOptions(e) {
-  return ContentService.createTextOutput()
-    .setHeader("Access-Control-Allow-Origin", "*")
-    .setHeader("Access-Control-Allow-Methods", "POST, OPTIONS")
-    .setHeader("Access-Control-Allow-Headers", "Content-Type");
-}
-
-// Apenas informativo, caso alguém tente GET
-function doGet(e) {
-  return ContentService.createTextOutput("Requisições GET não são suportadas.");
+// Opcional: simples verificação do deploy
+function doGet() {
+  return ContentService
+    .createTextOutput(JSON.stringify({ ok: true, msg: "Web App online" }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
