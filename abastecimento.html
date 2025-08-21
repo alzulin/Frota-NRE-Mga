@@ -10,16 +10,15 @@
   <h1 class="text-2xl font-bold mb-4">Registrar Abastecimento</h1>
 
   <form id="abastecimentoForm" class="space-y-3">
-    <select id="veiculo" class="w-full border p-2 rounded" required></select>
-    <input type="date" id="data" class="w-full border p-2 rounded" required>
-    <input type="time" id="hora" class="w-full border p-2 rounded" required>
-    <input type="number" id="km" placeholder="KM do veículo" class="w-full border p-2 rounded" required>
-    <input type="number" id="litros" placeholder="Litros abastecidos" class="w-full border p-2 rounded" required>
+    <select id="abastecimentoVeiculo" class="w-full border p-2 rounded" required></select>
+    <input type="date" id="abastecimentoData" class="w-full border p-2 rounded" required>
+    <input type="time" id="abastecimentoHora" class="w-full border p-2 rounded" required>
+    <input type="number" id="abastecimentoLitros" placeholder="Litros abastecidos" class="w-full border p-2 rounded" required>
 
-    <input type="file" id="foto" accept="image/*" capture="environment" class="w-full border p-2 rounded" required>
+    <input type="file" id="abastecimentoFoto" accept="image/*" capture="environment" class="w-full border p-2 rounded" required>
     <img id="previewFoto" class="hidden w-40 h-auto rounded shadow" alt="Prévia da foto">
 
-    <input type="text" id="tecnico" placeholder="Técnico responsável" class="w-full border p-2 rounded" required>
+    <input type="text" id="abastecimentoTecnico" placeholder="Técnico responsável" class="w-full border p-2 rounded" required>
 
     <button type="submit" id="btnEnviar" class="bg-yellow-600 text-white px-4 py-2 rounded w-full disabled:opacity-50" disabled>
       Registrar Abastecimento
@@ -29,20 +28,21 @@
   <a href="index.html" class="block mt-4 text-blue-600">Voltar</a>
 
   <script>
+    // 🚨 Use aqui a URL do seu WebApp publicado como "Qualquer pessoa, mesmo anônima"
     const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbyJAaBYQ4T5OHcnOkYAUyWJsZ7Y8UlKvDXWsr2y4NTYT0SfPSUm4pvHTRC5Pb1ZZc2lCQ/exec";
 
     const veiculos = [
       "CRONOS – SES4A21","CRONOS – SES4A66","CRONOS – TO3D38","DUSTER – BDR4E41",
       "PARATI – AVA5383","PARATI – AVA6129","PARATI – AVB2284","VOYAGE – BCR3J12"
     ];
-    const selectVeiculo = document.getElementById('veiculo');
+    const abastecimentoVeiculo = document.getElementById('abastecimentoVeiculo');
     veiculos.forEach(v => {
       const opt = document.createElement('option');
       opt.textContent = v;
-      selectVeiculo.appendChild(opt);
+      abastecimentoVeiculo.appendChild(opt);
     });
 
-    const fileInput = document.getElementById('foto');
+    const fileInput = document.getElementById('abastecimentoFoto');
     const preview = document.getElementById('previewFoto');
     const btnEnviar = document.getElementById('btnEnviar');
     let fotoBase64 = "", fotoTipo = "", fotoNome = "";
@@ -74,21 +74,29 @@
 
       const abastecimento = {
         tipo: "Abastecimento",
-        veiculo: selectVeiculo.value,
-        data: document.getElementById('data').value,
-        hora: document.getElementById('hora').value,
-        km: document.getElementById('km').value,
-        litros: document.getElementById('litros').value,
-        tecnico: document.getElementById('tecnico').value,
+        veiculo: abastecimentoVeiculo.value,
+        data: document.getElementById('abastecimentoData').value,
+        hora: document.getElementById('abastecimentoHora').value,
+        litros: document.getElementById('abastecimentoLitros').value,
+        tecnico: document.getElementById('abastecimentoTecnico').value,
         fotoBase64, fotoTipo, fotoNome
       };
 
       try {
         const resp = await fetch(URL_SCRIPT, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          mode: "cors", // 🔑 importante para liberar cross-origin
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
           body: JSON.stringify(abastecimento)
         });
+
+        if (!resp.ok) {
+          throw new Error("HTTP " + resp.status + " " + resp.statusText);
+        }
+
         const dados = await resp.json();
         if (dados.status === "sucesso") {
           alert("✅ Abastecimento registrado!");
@@ -100,11 +108,13 @@
         }
       } catch (err) {
         alert("❌ Erro na conexão: " + err.message);
+        console.error("Erro:", err);
       }
     });
   </script>
 </body>
 </html>
+
 
 
 
