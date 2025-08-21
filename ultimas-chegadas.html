@@ -62,7 +62,12 @@
 
     async function carregarUltimasChegadas() {
       try {
-        const resp = await fetch(`${URL_SCRIPT}?tipo=ultimasChegadas`);
+        const base = `${URL_SCRIPT}?tipo=ultimasChegadas`;
+const sep  = base.includes("?") ? "&" : "?";
+const url  = `${base}${sep}t=${Date.now()}`; // parâmetro único a cada chamada
+
+const resp = await fetch(url, { cache: "no-store" });
+
         if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
         const dados = await resp.json();
 
