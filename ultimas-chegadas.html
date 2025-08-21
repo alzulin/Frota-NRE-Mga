@@ -11,12 +11,11 @@
 
   <table class="w-full border bg-white shadow rounded">
     <thead>
-      <tr class="bg-gray-200">
+      <tr class="bg-gray-200 text-left">
         <th class="p-2 border">Veículo</th>
         <th class="p-2 border">Data</th>
         <th class="p-2 border">Hora</th>
         <th class="p-2 border">Combustível</th>
-        <th class="p-2 border">Técnico</th>
       </tr>
     </thead>
     <tbody id="tabelaChegadas"></tbody>
@@ -27,9 +26,44 @@
   <script>
     const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbylm9XPBh_AGIl9Q5E73P54MSCFsUFlmeDfx6Jw1Ymmr54bFTv3K6vq23-ZDAj0eBH0hw/exec";
 
+    function fmtDate(val) {
+      if (val === null || val === undefined || val === "") return "-";
+      if (typeof val === "number") {
+        const ms = Math.round((val - 25569) * 86400 * 1000);
+        return new Date(ms).toDateString().slice(4);
+      }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        return new Date(val + "T00:00:00").toDateString().slice(4);
+      }
+      const d = new Date(val);
+      if (!isNaN(d)) return d.toDateString().slice(4);
+      const m = String(val).match(/[A-Z][a-z]{2}\s+\d{1,2}\s+\d{4}/);
+      return m ? m[0] : String(val);
+    }
+
+    function fmtTime(val) {
+      if (val === null || val === undefined || val === "") return "-";
+      if (typeof val === "number") {
+        const totalMin = Math.round(val * 24 * 60);
+        const h = String(Math.floor(totalMin / 60) % 24).padStart(2, "0");
+        const m = String(totalMin % 60).padStart(2, "0");
+        return `${h}:${m}`;
+      }
+      const mm = String(val).match(/(\d{1,2}):(\d{2})/);
+      if (mm) return `${mm[1].padStart(2,"0")}:${mm[2]}`;
+      const d = new Date(val);
+      if (!isNaN(d)) {
+        const h = String(d.getHours()).padStart(2,"0");
+        const m = String(d.getMinutes()).padStart(2,"0");
+        return `${h}:${m}`;
+      }
+      return String(val);
+    }
+
     async function carregarUltimasChegadas() {
       try {
-        const resp = await fetch(URL_SCRIPT + "?tipo=ultimasChegadas");
+        const resp = await fetch(`${URL_SCRIPT}?tipo=ultimasChegadas`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
         const dados = await resp.json();
 
         const tbody = document.getElementById("tabelaChegadas");
@@ -39,10 +73,9 @@
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td class="p-2 border">${reg.veiculo}</td>
-            <td class="p-2 border">${reg.data}</td>
-            <td class="p-2 border">${reg.hora}</td>
+            <td class="p-2 border">${fmtDate(reg.data)}</td>
+            <td class="p-2 border">${fmtTime(reg.hora)}</td>
             <td class="p-2 border">${reg.combustivel || "-"}</td>
-            <td class="p-2 border">${reg.tecnico}</td>
           `;
           tbody.appendChild(tr);
         });
