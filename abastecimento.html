@@ -7,64 +7,102 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen p-4">
-  <h1 class="text-2xl font-bold mb-4">Registrar Abastecimento</h1>
+  <div class="max-w-xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4">Registrar Abastecimento</h1>
 
-  <form id="abastecimentoForm" class="space-y-3">
-    <select id="abastecimentoVeiculo" class="w-full border p-2 rounded" required></select>
-    <input type="date" id="abastecimentoData" class="w-full border p-2 rounded" required />
-    <input type="time" id="abastecimentoHora" class="w-full border p-2 rounded" required />
-    <input type="number" step="0.01" id="abastecimentoLitros" placeholder="Litros abastecidos" class="w-full border p-2 rounded" required />
-    <input type="file" id="abastecimentoFoto" accept="image/*" capture="environment" class="w-full border p-2 rounded" required />
-    <img id="previewFoto" class="hidden w-40 h-auto rounded shadow" alt="Prévia da foto" />
-    <input type="text" id="abastecimentoTecnico" placeholder="Técnico responsável" class="w-full border p-2 rounded" required />
+    <form id="abastecimentoForm" class="space-y-3">
+      <select id="abastecimentoVeiculo" class="w-full border p-2 rounded" required></select>
 
-    <button type="submit" id="btnEnviar" class="bg-yellow-600 text-white px-4 py-2 rounded w-full disabled:opacity-50" disabled>
-      Registrar Abastecimento
-    </button>
-  </form>
+      <div class="grid grid-cols-2 gap-3">
+        <input type="date" id="abastecimentoData" class="w-full border p-2 rounded" required />
+        <input type="time" id="abastecimentoHora" class="w-full border p-2 rounded" required />
+      </div>
 
-  <a href="index.html" class="block mt-4 text-blue-600">Voltar</a>
+      <input type="number" step="0.01" id="abastecimentoLitros" placeholder="Litros abastecidos" class="w-full border p-2 rounded" required />
+
+      <div class="space-y-2">
+        <input type="file" id="abastecimentoFoto" accept="image/*" capture="environment" class="w-full border p-2 rounded" required />
+        <img id="previewFoto" class="hidden w-40 h-auto rounded shadow" alt="Prévia da foto" />
+      </div>
+
+      <input type="text" id="abastecimentoTecnico" placeholder="Técnico responsável" class="w-full border p-2 rounded" required />
+
+      <button type="submit" id="btnEnviar" class="bg-yellow-600 text-white px-4 py-2 rounded w-full disabled:opacity-50" disabled>
+        Registrar Abastecimento
+      </button>
+    </form>
+
+    <a href="index.html" class="block mt-4 text-blue-600">Voltar</a>
+  </div>
 
   <script>
-    // ⚠️ Cole aqui a URL do seu Web App (DEPLOY ATUAL, /exec)
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbzgBoVQMRJHvVzPTBsiqr9sFwmt1eQ_YD2r-9yz3kBS6Uo1xsfn4DYxNPUpBqwn2wgYcA/exec";
+    // 🔗 Cole aqui a URL /exec do seu Web App (deploy ATUAL)
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbxsD-nLh5hL1iuH03sq8KH7nTmCJvB7kIYvRKbod1vW8NiNtM90bwujptT5asSNJgyY6g/exec";
 
+    // Lista de veículos
     const veiculos = [
       "CRONOS – SES4A21","CRONOS – SES4A66","CRONOS – TO3D38","DUSTER – BDR4E41",
       "PARATI – AVA5383","PARATI – AVA6129","PARATI – AVB2284","VOYAGE – BCR3J12"
     ];
+
+    // Elementos
     const selVeiculo = document.getElementById('abastecimentoVeiculo');
-    veiculos.forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v;
-      opt.textContent = v;
-      selVeiculo.appendChild(opt);
-    });
+    const fileInput  = document.getElementById('abastecimentoFoto');
+    const preview    = document.getElementById('previewFoto');
+    const btnEnviar  = document.getElementById('btnEnviar');
+    const form       = document.getElementById('abastecimentoForm');
 
-    const fileInput = document.getElementById('abastecimentoFoto');
-    const preview = document.getElementById('previewFoto');
-    const btnEnviar = document.getElementById('btnEnviar');
+    // Estado da foto (fallback base64)
+    let fotoBase64 = "", fotoTipo = "", fotoNome = "";
 
+    // Popular veículos
+    (function popularVeiculos() {
+      veiculos.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = v;
+        selVeiculo.appendChild(opt);
+      });
+    })();
+
+    // Pré-visualização e captura de base64 (fallback)
     fileInput.addEventListener('change', () => {
       const arq = fileInput.files[0];
-      if (!arq) { btnEnviar.disabled = true; preview.classList.add('hidden'); return; }
+      if (!arq) {
+        btnEnviar.disabled = true;
+        preview.classList.add('hidden');
+        preview.removeAttribute('src');
+        fotoBase64 = fotoTipo = fotoNome = "";
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = e => {
-        preview.src = e.target.result;
+        const dataUrl = e.target.result;
+        // Prévia
+        preview.src = dataUrl;
         preview.classList.remove('hidden');
+        // Fallback base64
+        fotoBase64 = dataUrl.split(',')[1];
+        fotoTipo   = arq.type || "image/jpeg";
+        fotoNome   = arq.name || "comprovante.jpg";
+        // Habilita envio
         btnEnviar.disabled = false;
       };
-      reader.onerror = () => { alert("Erro ao carregar a foto."); btnEnviar.disabled = true; };
+      reader.onerror = () => {
+        alert("Erro ao carregar a foto.");
+        btnEnviar.disabled = true;
+      };
       reader.readAsDataURL(arq);
     });
 
-    document.getElementById('abastecimentoForm').addEventListener('submit', async (e) => {
+    // Envio
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const foto = fileInput.files[0];
       if (!foto) return alert("Selecione a foto do comprovante.");
 
-      // Monta FormData (sem headers) para evitar preflight CORS
+      // Monta FormData sem headers customizados (evita preflight CORS)
       const fd = new FormData();
       fd.append('tipo', 'Abastecimento');
       fd.append('veiculo', selVeiculo.value);
@@ -72,39 +110,48 @@
       fd.append('hora', document.getElementById('abastecimentoHora').value);
       fd.append('litros', document.getElementById('abastecimentoLitros').value);
       fd.append('tecnico', document.getElementById('abastecimentoTecnico').value);
-      fd.append('foto', foto, foto.name); // envia arquivo nativo
 
+      // Foto como arquivo + fallback base64
+      fd.append('foto', foto, foto.name);
+      fd.append('fotoBase64', fotoBase64);
+      fd.append('fotoTipo',   fotoTipo);
+      fd.append('fotoNome',   fotoNome);
+
+      // UX
       btnEnviar.disabled = true;
+      const oldLabel = btnEnviar.textContent;
       btnEnviar.textContent = "Enviando...";
 
       try {
         const resp = await fetch(URL_SCRIPT, { method: "POST", body: fd });
-        // Não usar no-cors (resposta viraria 'opaque' e não dá para ler)
         if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
 
-        // Tenta ler JSON; se falhar, lê texto
+        // Tenta JSON; se não for JSON, cai pra texto
         let dados;
         try { dados = await resp.json(); }
         catch { dados = { status: "desconhecido", bruto: await resp.text() }; }
 
         if (dados.status === "sucesso") {
           alert("✅ Abastecimento registrado!");
-          e.target.reset();
+          form.reset();
           preview.classList.add('hidden');
+          preview.removeAttribute('src');
+          fotoBase64 = fotoTipo = fotoNome = "";
         } else {
           alert("⚠️ Erro: " + (dados.mensagem || JSON.stringify(dados)));
         }
       } catch (err) {
-        alert("❌ Erro na conexão: " + err.message);
         console.error(err);
+        alert("❌ Erro na conexão: " + err.message);
       } finally {
         btnEnviar.disabled = false;
-        btnEnviar.textContent = "Registrar Abastecimento";
+        btnEnviar.textContent = oldLabel;
       }
     });
   </script>
 </body>
 </html>
+
 
 
 
