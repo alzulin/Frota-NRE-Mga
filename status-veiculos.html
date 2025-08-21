@@ -138,10 +138,15 @@
         cards.innerHTML = "";
 
         const veic = filtroVeiculo.value;
-        const url  = veic ? `${URL_SCRIPT}?action=status&veiculo=${encodeURIComponent(veic)}`
-                          : `${URL_SCRIPT}?action=status`;
+const base = veic
+  ? `${URL_SCRIPT}?action=status&veiculo=${encodeURIComponent(veic)}`
+  : `${URL_SCRIPT}?action=status`;
 
-        const resp = await fetch(url);
+// ⚠️ Evita respostas “antigas” do cache
+const url = `${base}&t=${Date.now()}`;
+
+const resp = await fetch(url, { cache: "no-store" });
+     
         if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
         const dados = await resp.json();
 
